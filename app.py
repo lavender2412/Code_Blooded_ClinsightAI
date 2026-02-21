@@ -284,12 +284,14 @@ with tab2:
         title="Theme Impact on Star Rating",
         xaxis_title="Regression Coefficient",
         height=420,
+        margin=dict(l=280, r=80, t=48, b=48),  # ← wider left margin
         legend=dict(orientation="h", y=1.08, x=0),
         yaxis=dict(
             tickmode="array",
             tickvals=list(range(len(impact_plot))),
             ticktext=impact_plot["Theme"].tolist(),
             tickfont=dict(size=12),
+            automargin=True,   # ← also add this
             gridcolor="#e2e8f0",
         ),
     )
