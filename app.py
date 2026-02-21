@@ -27,10 +27,10 @@ h1, h2, h3 {
 .stApp { background-color: #f6f7f9; }
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
-    border-right: 1px solid #334155;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
 }
-[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
+[data-testid="stSidebar"] * { color: #0f172a !important; }
 
 /* Black selectboxes in sidebar */
 [data-testid="stSidebar"] [data-baseweb="select"] > div:first-child {
