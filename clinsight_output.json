@@ -1,0 +1,114 @@
+{
+  "clinic_summary": {
+    "overall_rating_mean": 3.57,
+    "total_reviews": 996,
+    "avg_predicted_rating": 3.57,
+    "primary_risk_themes": [
+      "Consultation & Positive Patient Experience",
+      "Clinical Care & Treatment Quality"
+    ]
+  },
+  "theme_analysis": [
+    {
+      "theme": "Consultation & Positive Patient Experience",
+      "frequency_percentage": 30.4,
+      "present_frequency": 35.9,
+      "rating_impact": 0.197,
+      "severity_score": 0.0708,
+      "risk_score": 0.0604,
+      "issue_class": "Systemic",
+      "confidence_stability": 0.854,
+      "evidence_samples": [
+        "There is great team of doctors and good OT facility.",
+        "Such a worst staff in this hospital.",
+        "Administrative service is so irresponsible for orthopaedic department, inspite o..."
+      ]
+    },
+    {
+      "theme": "Clinical Care & Treatment Quality",
+      "frequency_percentage": 21.8,
+      "present_frequency": 28.5,
+      "rating_impact": -0.211,
+      "severity_score": 0.0603,
+      "risk_score": 0.0503,
+      "issue_class": "Systemic",
+      "confidence_stability": 0.834,
+      "evidence_samples": [
+        "Hopeless hospital. I don't know how they have got JCI and NABH. They have no val...",
+        "Don't go buy name of the hospital. ",
+        "Don't go buy name of the hospital. "
+      ]
+    },
+    {
+      "theme": "Overall Service & Facility Cleanliness",
+      "frequency_percentage": 15.1,
+      "present_frequency": 18.6,
+      "rating_impact": 0.139,
+      "severity_score": 0.0257,
+      "risk_score": 0.02,
+      "issue_class": "Recurring",
+      "confidence_stability": 0.778,
+      "evidence_samples": [
+        "I called them to book an appointment, i requested for a senior doctor and seeked...",
+        "Poorly managed patient flow.",
+        "They book more appointments than capacity. "
+      ]
+    },
+    {
+      "theme": "Wait Time & Operational Efficiency",
+      "frequency_percentage": 13.0,
+      "present_frequency": 17.4,
+      "rating_impact": -0.093,
+      "severity_score": 0.0162,
+      "risk_score": 0.0093,
+      "issue_class": "Recurring",
+      "confidence_stability": 0.574,
+      "evidence_samples": [
+        "Receptionists only want money. They don't care if the doctor is 2 hrs late but g...",
+        "They do not care.. only thing they care is money. Once money is in their bank ac...",
+        "After charging a bomb to the patients they have no system in place. "
+      ]
+    },
+    {
+      "theme": "Emergency Service Failures",
+      "frequency_percentage": 19.8,
+      "present_frequency": 25.1,
+      "rating_impact": -0.059,
+      "severity_score": 0.0147,
+      "risk_score": 0.0058,
+      "issue_class": "Recurring",
+      "confidence_stability": 0.397,
+      "evidence_samples": [
+        "My primary concern arose from the insistence on conducting multiple tests, which...",
+        "I went for my father. He has tracheostomy n all issues. They made him wait for 1...",
+        "Worst experience when we went for the full body health checkup.."
+      ]
+    }
+  ],
+  "improvement_roadmap": [
+    {
+      "priority": 1,
+      "theme": "Clinical Care & Treatment Quality",
+      "recommendation": "Implement peer review program and clinical quality audits",
+      "expected_rating_lift": "+0.4",
+      "confidence": 0.834,
+      "issue_class": "Systemic"
+    },
+    {
+      "priority": 2,
+      "theme": "Wait Time & Operational Efficiency",
+      "recommendation": "Optimise appointment scheduling workflow and reduce patient wait times",
+      "expected_rating_lift": "+0.6",
+      "confidence": 0.574,
+      "issue_class": "Recurring"
+    },
+    {
+      "priority": 3,
+      "theme": "Emergency Service Failures",
+      "recommendation": "Establish emergency response protocols and dedicated triage staff",
+      "expected_rating_lift": "+0.5",
+      "confidence": 0.397,
+      "issue_class": "Recurring"
+    }
+  ]
+}
