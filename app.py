@@ -26,20 +26,25 @@ h1, h2, h3 {
 }
 .stApp { background-color: #f6f7f9; }
 
-[data-testid="stSidebar"] {
-    background: #ffffff;
-    border-right: 1px solid #e2e8f0;
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div:first-child,
+section[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
 }
 [data-testid="stSidebar"] * { color: #0f172a !important; }
 
 /* Black selectboxes in sidebar */
 [data-testid="stSidebar"] [data-baseweb="select"] > div:first-child {
     background-color: #000000 !important;
-    border: 1px solid #374151 !important;
+    border: 1px solid #000000 !important;
     border-radius: 8px !important;
 }
 [data-testid="stSidebar"] [data-baseweb="select"] * {
     color: #ffffff !important;
+    background-color: #000000 !important;
 }
 [data-testid="stSidebar"] [data-baseweb="select"] svg {
     fill: #ffffff !important;
