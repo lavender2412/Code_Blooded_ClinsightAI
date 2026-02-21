@@ -244,11 +244,25 @@ def main():
     #model = Pipeline([("scaler", StandardScaler()), ("reg", LinearRegression())])
     #model.fit(X, y)
     # Tests multiple alpha values automatically via cross-validation
+
+    tfidf_vectorizer = TfidfVectorizer(
+            ngram_range=(1, 2),
+            min_df=3,
+            max_df=0.95
+        )
+        X_tfidf = tfidf_vectorizer.fit_transform(df["clean_text"])  # sparse
+
+        # Combine: [TF-IDF | Topic probabilities]
+        X_topics_sparse = csr_matrix(topic_prob)  # sparse (n, K)
+        X = hstack([X_tfidf, X_topics_sparse]).tocsr()
+        y = df[RATING_COL].values
+
     model = Pipeline([
             ("scaler", StandardScaler(with_mean=False)),
             ("reg", Ridge(alpha=5967.90))
         ])    
     model.fit(X, y)
+
 
     intercept = model.named_steps["reg"].intercept_
     coefs     = model.named_steps["reg"].coef_
