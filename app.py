@@ -103,8 +103,8 @@ PLOTLY_LAYOUT = dict(
     hoverlabel=dict(bgcolor="#0f172a", font_color="#f8fafc", font_family="DM Sans"),
 )
 
-NEG_COLOR   = "#ef4444"
-POS_COLOR   = "#10b981"
+NEG_COLOR     = "#ef4444"
+POS_COLOR     = "#10b981"
 CLASS_PALETTE = {"Systemic": "#ef4444", "Recurring": "#f59e0b", "Isolated": "#10b981"}
 
 def apply_layout(fig, **kwargs):
@@ -174,6 +174,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🧾 JSON Output",
 ])
 
+
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 1 — Theme Discovery
 # ════════════════════════════════════════════════════════════════════════════
@@ -220,35 +221,72 @@ with tab2:
     ]].copy().sort_values("impact_coefficient")
     impact_display.columns = ["Theme", "Coefficient", "CI Low (2.5%)", "CI High (97.5%)", "Stability"]
 
-    col1, col2 = st.columns([3, 2])
-    with col1:
-        colors = [NEG_COLOR if c < 0 else POS_COLOR for c in impact_display["Coefficient"]]
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=impact_display["Coefficient"], y=impact_display["Theme"],
-            orientation="h",
-            marker=dict(color=colors, line=dict(width=0)),
-            error_x=dict(
-                type="data", symmetric=False,
-                array=(impact_display["CI High (97.5%)"] - impact_display["Coefficient"]).tolist(),
-                arrayminus=(impact_display["Coefficient"] - impact_display["CI Low (2.5%)"]).tolist(),
-                color="#94a3b8", thickness=1.5, width=4,
-            ),
-            hovertemplate="<b>%{y}</b><br>Coef: %{x:.4f}<extra></extra>",
-            showlegend=False,
-        ))
-        fig.add_trace(go.Bar(x=[None], y=[None], orientation="h",
-                             marker=dict(color=POS_COLOR), name="↑ Lifts rating"))
-        fig.add_trace(go.Bar(x=[None], y=[None], orientation="h",
-                             marker=dict(color=NEG_COLOR), name="↓ Hurts rating"))
-        fig.add_vline(x=0, line_width=1.5, line_color="#64748b")
-        apply_layout(fig, title="Theme Impact on Star Rating",
-                     xaxis_title="Regression Coefficient", height=380,
-                     legend=dict(orientation="h", y=1.08, x=0))
-        st.plotly_chart(fig, use_container_width=True)
+    # ── Full-width lollipop chart ─────────────────────────────────────────────
+    fig = go.Figure()
 
-    with col2:
-        st.dataframe(impact_display.round(4), use_container_width=True, height=380)
+    for i, row in enumerate(impact_display.itertuples()):
+        color = POS_COLOR if row.Coefficient >= 0 else NEG_COLOR
+
+        # CI range line (behind everything)
+        fig.add_shape(
+            type="line",
+            x0=getattr(row, "CI Low (2.5%)"),
+            x1=getattr(row, "CI High (97.5%)"),
+            y0=i, y1=i,
+            line=dict(color="#cbd5e1", width=2),
+            layer="below",
+        )
+        # Stem from zero to coefficient
+        fig.add_shape(
+            type="line",
+            x0=0, x1=row.Coefficient,
+            y0=i, y1=i,
+            line=dict(color=color, width=2.5),
+        )
+
+    # Dots
+    fig.add_trace(go.Scatter(
+        x=impact_display["Coefficient"],
+        y=list(range(len(impact_display))),
+        mode="markers+text",
+        marker=dict(
+            color=[POS_COLOR if c >= 0 else NEG_COLOR for c in impact_display["Coefficient"]],
+            size=16,
+            line=dict(color="#ffffff", width=2.5),
+        ),
+        text=[f"  {c:+.4f}" for c in impact_display["Coefficient"]],
+        textposition="middle right",
+        textfont=dict(size=11, color="#475569", family="DM Sans"),
+        hovertemplate="<b>%{customdata}</b><br>Coefficient: %{x:.4f}<extra></extra>",
+        customdata=impact_display["Theme"],
+        showlegend=False,
+    ))
+
+    # Legend proxies
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
+        marker=dict(color=POS_COLOR, size=12), name="↑ Lifts rating"))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers",
+        marker=dict(color=NEG_COLOR, size=12), name="↓ Hurts rating"))
+
+    fig.add_vline(x=0, line_width=1.5, line_color="#64748b")
+
+    apply_layout(fig,
+        title="Theme Impact on Star Rating",
+        xaxis_title="Regression Coefficient",
+        height=420,
+        legend=dict(orientation="h", y=1.08, x=0),
+        yaxis=dict(
+            tickmode="array",
+            tickvals=list(range(len(impact_display))),
+            ticktext=impact_display["Theme"].tolist(),
+            tickfont=dict(size=12),
+            gridcolor="#e2e8f0",
+        ),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Table below
+    st.dataframe(impact_display.round(4), use_container_width=True)
 
     st.divider()
     st.subheader("1-Star vs 5-Star Theme Drivers")
