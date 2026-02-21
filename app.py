@@ -94,17 +94,6 @@ with tab1:
                autopct='%1.1f%%', startangle=140)
         ax.set_title("Theme Distribution")
         st.pyplot(fig); plt.close(fig)
-'''
-    st.divider()
-    st.subheader("Top Words per Topic")
-    cols = st.columns(len(theme_df))
-    for i, row in theme_df.reset_index().iterrows():
-        with cols[i]:
-            st.markdown(f"**{row['theme_label']}**")
-            for w in row['top_words'].split(' | ')[:10]:
-                st.markdown(f"- {w}")
-
-'''
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 2 — Rating Impact
 # ════════════════════════════════════════════════════════════════════════════
