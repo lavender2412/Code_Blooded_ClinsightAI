@@ -644,7 +644,7 @@ with tab6:
     st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(filtered[[
-        "Feedback", "ratings", "predicted_rating", "residual",
+        "Feedback", "Actual Rating", "Predicted Rating", "Residual",
         "theme", "dominant_contributor_theme"
     ]].head(300), use_container_width=True)
 
@@ -656,9 +656,9 @@ with tab6:
         row = filtered.iloc[int(idx)]
         st.markdown(f"**Review:** {row['Feedback']}")
         st.markdown(
-            f"**Rating:** {row['ratings']} | "
-            f"**Predicted:** {row['predicted_rating']:.2f} | "
-            f"**Residual:** {row['residual']:.2f}"
+            f"**Rating:** {row['Actual Rating']} | "
+            f"**Predicted:** {row['Predicted Rating']:.2f} | "
+            f"**Residual:** {row['Residual']:.2f}"
         )
         st.markdown(f"**Dominant Theme:** {row['theme']}")
         st.markdown(f"**Dominant Contributor:** {row['dominant_contributor_theme']}")
