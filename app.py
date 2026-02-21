@@ -18,7 +18,7 @@ def load_data():
 
 theme_df, reviews_df = load_data()
 
-# ── Sidebar filters ───────────────────────────────────────────────────────────
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 st.sidebar.header("🔍 Filters")
 selected_theme = st.sidebar.selectbox(
     "Select a Theme",
@@ -26,6 +26,20 @@ selected_theme = st.sidebar.selectbox(
 )
 min_rating, max_rating = st.sidebar.slider("Rating Range", 1, 5, (1, 5))
 
+# Task 3 controls (only used in Tab 3)
+st.sidebar.divider()
+st.sidebar.subheader("⚠️ Task 3 Controls")
+prob_thr     = st.sidebar.slider("Topic probability threshold", 0.05, 0.80, 0.30, 0.05)
+isolated_thr = st.sidebar.slider("Isolated cutoff (freq <)",   0.01, 0.20, 0.05, 0.01)
+systemic_thr = st.sidebar.slider("Systemic cutoff (freq ≥)",   0.05, 0.60, 0.20, 0.05)
+risk_mode    = st.sidebar.selectbox("Risk Score Mode", [
+    "Simple (Frequency × |Impact|)",
+    "Confidence-adjusted (× Confidence)"
+])
+show_only     = st.sidebar.selectbox("Show", ["All", "Systemic only", "Recurring only", "Isolated only"])
+impact_filter = st.sidebar.selectbox("Impact Filter", ["All", "Negative impact only", "Positive impact only"])
+
+# ── Global filter for reviews ─────────────────────────────────────────────────
 filtered = reviews_df.copy()
 filtered = filtered[
     (filtered["Ratings"] >= min_rating) &
@@ -45,10 +59,11 @@ k4.metric("Highest Risk Theme",        top_risk["theme_label"], delta=top_risk["
 st.divider()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Theme Discovery",
     "📈 Rating Impact",
     "⚠️ Risk & Systemic Issues",
+    "🔁 Recurring Issues (Interactive)",
     "🔬 Review Explorer"
 ])
 
@@ -144,7 +159,7 @@ with tab2:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 3 — Risk & Systemic Issues
+# TAB 3 — Risk & Systemic Issues (static, from pipeline)
 # ════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.subheader("Theme Risk Ranking")
@@ -204,9 +219,124 @@ with tab3:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 4 — Review Explorer
+# TAB 4 — Recurring Issues (Interactive)
 # ════════════════════════════════════════════════════════════════════════════
 with tab4:
+    st.subheader("Task 3 — Recurring & Systemic Issues (Interactive)")
+    st.caption("Adjust thresholds in the sidebar to recompute classifications live.")
+
+    # Build task3 table dynamically from threshold sliders
+    topic_prob_cols = [c for c in reviews_df.columns if c.startswith("topic_prob_")]
+    K = len(topic_prob_cols)
+
+    impact_map = dict(zip(theme_df["theme_label"], theme_df["impact_coefficient"]))
+    conf_map   = dict(zip(theme_df["theme_label"], theme_df["confidence_stability"]))
+    topic_id_to_theme = dict(zip(theme_df["topic_id"], theme_df["theme_label"]))
+
+    present_mat        = (reviews_df[topic_prob_cols].values > prob_thr).astype(int)
+    present_freq_live  = present_mat.mean(axis=0)
+    reviews_with_topic = present_mat.sum(axis=0)
+
+    abs_impacts        = [abs(impact_map.get(topic_id_to_theme.get(i, ""), 0.0)) for i in range(1, K + 1)]
+    high_impact_cutoff = np.median(abs_impacts)
+
+    def classify_live(freq, abs_impact):
+        if freq < isolated_thr:
+            return "Isolated"
+        if freq >= systemic_thr and abs_impact >= high_impact_cutoff:
+            return "Systemic"
+        return "Recurring"
+
+    rows = []
+    for idx, topic_id in enumerate(range(1, K + 1)):
+        theme    = topic_id_to_theme.get(topic_id, f"Topic {topic_id}")
+        imp      = impact_map.get(theme, 0.0)
+        abs_imp  = abs(imp)
+        freq     = float(present_freq_live[idx])
+        conf     = float(conf_map.get(theme, 1.0))
+        rows.append({
+            "topic_id":              topic_id,
+            "theme_label":           theme,
+            "issue_class":           classify_live(freq, abs_imp),
+            "reviews_with_topic":    int(reviews_with_topic[idx]),
+            "present_frequency":     freq,
+            "impact_coefficient":    imp,
+            "abs_impact":            abs_imp,
+            "confidence":            conf,
+            "risk_score_simple":     freq * abs_imp,
+            "risk_score_confidence": freq * abs_imp * conf,
+        })
+
+    task3_df = pd.DataFrame(rows)
+    risk_col = "risk_score_simple" if risk_mode.startswith("Simple") else "risk_score_confidence"
+
+    # Apply filters
+    if show_only == "Systemic only":
+        task3_df = task3_df[task3_df["issue_class"] == "Systemic"]
+    elif show_only == "Recurring only":
+        task3_df = task3_df[task3_df["issue_class"] == "Recurring"]
+    elif show_only == "Isolated only":
+        task3_df = task3_df[task3_df["issue_class"] == "Isolated"]
+
+    if impact_filter == "Negative impact only":
+        task3_df = task3_df[task3_df["impact_coefficient"] < 0]
+    elif impact_filter == "Positive impact only":
+        task3_df = task3_df[task3_df["impact_coefficient"] > 0]
+
+    task3_df = task3_df.sort_values(risk_col, ascending=False)
+
+    # KPI cards
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Threshold",     f"{prob_thr:.2f}")
+    c2.metric("Themes shown",  f"{len(task3_df)}")
+    c3.metric("Top Risk Theme", task3_df.iloc[0]["theme_label"] if len(task3_df) > 0 else "—")
+
+    st.divider()
+
+    left, right = st.columns(2)
+    with left:
+        st.subheader("Frequency by Theme")
+        st.bar_chart(task3_df.set_index("theme_label")["present_frequency"])
+    with right:
+        st.subheader(f"Risk Score ({risk_mode})")
+        st.bar_chart(task3_df.set_index("theme_label")[risk_col])
+
+    st.divider()
+    st.subheader("Recurring & Systemic Issues Table")
+    st.dataframe(
+        task3_df[[
+            "topic_id", "theme_label", "issue_class",
+            "reviews_with_topic", "present_frequency",
+            "impact_coefficient", "confidence", risk_col
+        ]],
+        use_container_width=True
+    )
+
+    st.divider()
+    st.subheader("Drilldown: Reviews triggering a selected theme")
+
+    theme_to_topic_id = {v: k for k, v in topic_id_to_theme.items()}
+    theme_pick = st.selectbox(
+        "Select theme to inspect",
+        task3_df["theme_label"].tolist() if len(task3_df) > 0 else theme_df["theme_label"].tolist()
+    )
+    picked_topic_id = theme_to_topic_id.get(theme_pick, 1)
+    picked_prob_col = f"topic_prob_{picked_topic_id}"
+
+    subset = reviews_df[reviews_df[picked_prob_col] > prob_thr].copy()
+    subset = subset.sort_values("Ratings")
+
+    st.write(f"Reviews where **{theme_pick}** prob > {prob_thr:.2f} — Count: {len(subset):,}")
+    st.dataframe(
+        subset[["Feedback", "Ratings", "predicted_rating", "residual", "theme_label", picked_prob_col]].head(150),
+        use_container_width=True
+    )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 5 — Review Explorer
+# ════════════════════════════════════════════════════════════════════════════
+with tab5:
     st.subheader("Review Explorer")
     st.caption("Filtered by sidebar. Sort by residual to find where the model under/over-predicts.")
 
