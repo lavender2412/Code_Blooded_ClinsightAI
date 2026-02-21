@@ -230,7 +230,7 @@ def main():
     keep_cols += [f"topic_present_{k+1}" for k in range(N_TOPICS)]
     review_level = df[keep_cols].copy()
 
-    # ── Save ──────────────────────────────────────────────────────────────────
+    # ── Save CSVs ─────────────────────────────────────────────────────────────
     review_level.to_csv("review_level_outputs.csv", index=False)
     theme_level.to_csv("theme_level_outputs.csv",   index=False)
     freq_df.to_csv("task3_recurring_systemic.csv",  index=False)
@@ -240,6 +240,11 @@ def main():
     print("✅ Saved: task3_recurring_systemic.csv")
     print("\nTop systemic risks:")
     print(freq_df[["topic_id", "theme_label", "issue_class", "risk_score_simple"]].to_string(index=False))
+
+    # ── Generate JSON output ──────────────────────────────────────────────────
+    from pipeline.json_output import generate_json_output, save_json
+    json_output = generate_json_output(theme_level, review_level, TOPIC_LABELS)
+    save_json(json_output, "clinsight_output.json")
 
 
 if __name__ == "__main__":
