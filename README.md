@@ -114,11 +114,8 @@ Output: Access generated reports and CSV files
 Action: Implement recommendations from action roadmap
 🎓 Use Cases
 
-Hospital quality improvement initiatives
-Patient experience analysis
-Operational efficiency assessment
-Systemic problem identification
-Strategic planning for healthcare institutions
+Hospital quality improvement initiatives Patient experience analysis, Operational efficiency assessment, Systemic problem identification and Strategic planning for healthcare institutions
+
 📊 Technology Stack
 Backend: Python 3.7+
 Data Processing: Pandas, NumPy
