@@ -1,6 +1,7 @@
 import json
 import os
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -145,6 +146,30 @@ def apply_layout(fig, **kwargs):
     return fig
 
 # ── Title ─────────────────────────────────────────────────────────────────────
+import streamlit.components.v1 as components
+components.html("""
+<script>
+function forceWhiteSidebar() {
+    const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+    if (sidebar) {
+        sidebar.style.setProperty('background', '#ffffff', 'important');
+        sidebar.style.setProperty('background-color', '#ffffff', 'important');
+        const inner = sidebar.querySelectorAll('div, section');
+        inner.forEach(el => {
+            const bg = window.parent.getComputedStyle(el).backgroundColor;
+            if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                el.style.setProperty('background', '#ffffff', 'important');
+                el.style.setProperty('background-color', '#ffffff', 'important');
+            }
+        });
+    } else {
+        setTimeout(forceWhiteSidebar, 100);
+    }
+}
+forceWhiteSidebar();
+</script>
+""", height=0)
+
 st.markdown('<p class="main-title">🏥 ClinsightAI</p>', unsafe_allow_html=True)
 st.markdown('<p class="main-subtitle">Healthcare Review Intelligence Dashboard</p>', unsafe_allow_html=True)
 
