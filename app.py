@@ -6,111 +6,245 @@ import matplotlib.patches as mpatches
 import seaborn as sns
 import networkx as nx
 
-from pipeline.preprocess import clean_dataframe
-from pipeline.topic_model import run_lda, TOPIC_LABELS, N_TOPICS
+st.set_page_config(page_title="ClinsightAI Dashboard", layout="wide")
+st.title("🏥 ClinsightAI — Healthcare Review Intelligence Dashboard")
 
-# ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(page_title="ClinsightAI", layout="wide")
-st.title("🏥 ClinsightAI — Healthcare Review Intelligence")
-
-# ── Run pipeline (cached) ─────────────────────────────────────────────────────
+# ── Load pre-generated CSVs ───────────────────────────────────────────────────
 @st.cache_data
 def load_data():
-    df_raw = pd.read_csv("hospital.csv")
-    df = clean_dataframe(df_raw, text_col='Feedback')
-    df, topic_probabilities, topic_words, theme_counts, theme_freq, severity_df, topic_similarity = run_lda(df)
-    return df, topic_probabilities, topic_words, theme_counts, theme_freq, severity_df, topic_similarity
+    theme_df   = pd.read_csv("theme_level_outputs.csv")
+    reviews_df = pd.read_csv("review_level_outputs.csv")
+    return theme_df, reviews_df
 
-with st.spinner("Running analysis on hospital reviews..."):
-    df, topic_probabilities, topic_words, theme_counts, theme_freq, severity_df, topic_similarity = load_data()
+theme_df, reviews_df = load_data()
 
-st.success(f"✅ Analysed {len(df):,} reviews")
+# ── Sidebar filters ───────────────────────────────────────────────────────────
+st.sidebar.header("🔍 Filters")
+selected_theme = st.sidebar.selectbox(
+    "Select a Theme",
+    ["All"] + theme_df["theme_label"].tolist()
+)
+min_rating, max_rating = st.sidebar.slider("Rating Range", 1, 5, (1, 5))
+
+filtered = reviews_df.copy()
+filtered = filtered[
+    (filtered["Ratings"] >= min_rating) &
+    (filtered["Ratings"] <= max_rating)
+]
+if selected_theme != "All":
+    filtered = filtered[filtered["theme_label"] == selected_theme]
+
+# ── Top KPI metrics ───────────────────────────────────────────────────────────
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Total Reviews (filtered)",  f"{len(filtered):,}")
+k2.metric("Avg Actual Rating",         f"{filtered['Ratings'].mean():.2f} ⭐")
+k3.metric("Avg Predicted Rating",      f"{filtered['predicted_rating'].mean():.2f} ⭐")
+top_risk = theme_df.sort_values("risk_score", ascending=False).iloc[0]
+k4.metric("Highest Risk Theme",        top_risk["theme_label"], delta=top_risk["issue_class"])
+
+st.divider()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2 = st.tabs(["📊 Theme Discovery", "⚠️ Severity & Risk"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📊 Theme Discovery",
+    "📈 Rating Impact",
+    "⚠️ Risk & Systemic Issues",
+    "🔬 Review Explorer"
+])
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 1 — Theme Discovery
 # ════════════════════════════════════════════════════════════════════════════
 with tab1:
-
     st.subheader("Theme Frequency Distribution")
     col1, col2 = st.columns(2)
 
     with col1:
-        fig1, ax1 = plt.subplots(figsize=(7, 4))
-        sns.barplot(x=theme_freq.values, y=theme_freq.index, palette="Blues_d", ax=ax1)
-        ax1.set_xlabel("Frequency (proportion of reviews)")
-        ax1.set_ylabel("")
-        ax1.set_title("Theme Frequency")
-        st.pyplot(fig1)
-        plt.close(fig1)
+        freq_data = theme_df.set_index("theme_label")["dominant_topic_frequency"].sort_values()
+        fig, ax = plt.subplots(figsize=(7, 4))
+        sns.barplot(x=freq_data.values, y=freq_data.index, palette="Blues_d", ax=ax)
+        ax.set_xlabel("Proportion of Reviews")
+        ax.set_title("Theme Frequency (Dominant Topic)")
+        st.pyplot(fig); plt.close(fig)
 
     with col2:
-        fig2, ax2 = plt.subplots(figsize=(6, 5))
-        ax2.pie(theme_counts.values, labels=theme_counts.index,
-                autopct='%1.1f%%', startangle=140)
-        ax2.set_title("Theme Distribution")
-        st.pyplot(fig2)
-        plt.close(fig2)
+        fig, ax = plt.subplots(figsize=(6, 5))
+        ax.pie(
+            theme_df["dominant_topic_frequency"],
+            labels=theme_df["theme_label"],
+            autopct='%1.1f%%', startangle=140
+        )
+        ax.set_title("Theme Distribution")
+        st.pyplot(fig); plt.close(fig)
 
     st.divider()
-
     st.subheader("Top Words per Topic")
-    cols = st.columns(N_TOPICS)
-    for i, (theme, words) in enumerate(topic_words.items()):
+    cols = st.columns(len(theme_df))
+    for i, row in theme_df.reset_index().iterrows():
         with cols[i]:
-            st.markdown(f"**{theme}**")
-            for w in words[:10]:
+            st.markdown(f"**{row['theme_label']}**")
+            for w in row['top_words'].split(' | ')[:10]:
                 st.markdown(f"- {w}")
 
-    st.divider()
-
-    st.subheader("Topic Similarity Network (Cosine Similarity)")
-    G          = nx.Graph()
-    labels_list = list(TOPIC_LABELS.values())
-    for label in labels_list:
-        G.add_node(label)
-    for i in range(len(labels_list)):
-        for j in range(i + 1, len(labels_list)):
-            G.add_edge(labels_list[i], labels_list[j], weight=topic_similarity[i][j])
-
-    pos     = nx.spring_layout(G, seed=42)
-    weights = [G[u][v]['weight'] for u, v in G.edges()]
-
-    fig3, ax3 = plt.subplots(figsize=(10, 7))
-    nx.draw_networkx_nodes(G, pos, node_size=3000, node_color='lightblue', ax=ax3)
-    nx.draw_networkx_edges(G, pos, width=[w * 5 for w in weights], edge_color='gray', ax=ax3)
-    nx.draw_networkx_labels(G, pos, font_size=9, font_weight='bold', ax=ax3)
-    edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in G.edges(data=True)}
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax3)
-    ax3.set_title("Topic Similarity Network")
-    ax3.axis('off')
-    st.pyplot(fig3)
-    plt.close(fig3)
-
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 2 — Severity & Risk
+# TAB 2 — Rating Impact
 # ════════════════════════════════════════════════════════════════════════════
 with tab2:
+    st.subheader("Impact Coefficients — How Each Theme Affects Ratings")
+    st.caption("Positive = lifts rating | Negative = hurts rating")
 
-    st.subheader("Theme Severity Scores")
-    st.dataframe(severity_df, use_container_width=True)
+    impact_display = theme_df[[
+        "theme_label", "impact_coefficient",
+        "coef_ci_2.5%", "coef_ci_97.5%", "confidence_stability"
+    ]].copy().sort_values("impact_coefficient")
+    impact_display.columns = ["Theme", "Coefficient", "CI Low (2.5%)", "CI High (97.5%)", "Stability"]
 
-    fig4, ax4 = plt.subplots(figsize=(8, 4))
-    heatmap_data = severity_df.set_index("Theme")[["Severity Score"]]
-    sns.heatmap(heatmap_data, annot=True, fmt=".4f", cmap="Reds", ax=ax4)
-    ax4.set_title("Theme Severity Heatmap")
-    st.pyplot(fig4)
-    plt.close(fig4)
+    col1, col2 = st.columns(2)
+    with col1:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        colors = ["#d73027" if c < 0 else "#1a9850" for c in impact_display["Coefficient"]]
+        ax.barh(impact_display["Theme"], impact_display["Coefficient"], color=colors)
+        ax.axvline(0, color='black', linewidth=0.8, linestyle='--')
+        ax.set_xlabel("Regression Coefficient")
+        ax.set_title("Theme Impact on Star Rating")
+        ax.legend(handles=[
+            mpatches.Patch(color='#d73027', label='Hurts rating'),
+            mpatches.Patch(color='#1a9850', label='Lifts rating')
+        ])
+        st.pyplot(fig); plt.close(fig)
+
+    with col2:
+        st.dataframe(impact_display.round(4), use_container_width=True)
 
     st.divider()
+    st.subheader("1-Star vs 5-Star Theme Drivers")
 
-    st.subheader("Severity Score by Theme")
-    fig5, ax5 = plt.subplots(figsize=(8, 4))
-    sns.barplot(data=severity_df, x="Severity Score", y="Theme", palette="Reds_d", ax=ax5)
-    ax5.set_title("Severity Score (Frequency × Avg Probability)")
-    st.pyplot(fig5)
-    plt.close(fig5)
+    star_df = theme_df[["theme_label", "avg_in_1star", "avg_in_5star"]].melt(
+        id_vars="theme_label", var_name="Star Group", value_name="Avg Topic Probability"
+    )
+    star_df["Star Group"] = star_df["Star Group"].map({
+        "avg_in_1star": "1-Star Reviews",
+        "avg_in_5star": "5-Star Reviews"
+    })
+    fig, ax = plt.subplots(figsize=(9, 4))
+    sns.barplot(data=star_df, x="theme_label", y="Avg Topic Probability",
+                hue="Star Group", palette=["#d73027", "#1a9850"], ax=ax)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=20, ha='right', fontsize=8)
+    ax.set_title("Avg Topic Probability: 1-Star vs 5-Star Reviews")
+    st.pyplot(fig); plt.close(fig)
+
+    st.divider()
+    st.subheader("Model Robustness")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Cross-validated R²",   f"{theme_df['cv_r2_mean'].iloc[0]:.3f}")
+    m2.metric("Cross-validated RMSE", f"{theme_df['cv_rmse_mean'].iloc[0]:.3f}")
+    m3.metric("Intercept",            f"{theme_df['intercept'].iloc[0]:.3f}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 3 — Risk & Systemic Issues
+# ════════════════════════════════════════════════════════════════════════════
+with tab3:
+    st.subheader("Theme Risk Ranking")
+
+    risk_display = theme_df[[
+        "topic_id", "theme_label", "issue_class",
+        "present_frequency_(prob>thr)", "impact_coefficient",
+        "severity_score", "risk_score", "confidence_stability"
+    ]].copy()
+
+    def color_class(val):
+        return {
+            "Systemic":  "background-color: #f8d7da",
+            "Recurring": "background-color: #fff3cd",
+            "Isolated":  "background-color: #d4edda"
+        }.get(val, "")
+
+    st.dataframe(
+        risk_display.style.applymap(color_class, subset=["issue_class"]),
+        use_container_width=True
+    )
+
+    st.divider()
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Risk Score by Theme")
+        fig, ax = plt.subplots(figsize=(7, 4))
+        sns.barplot(
+            data=theme_df.sort_values("risk_score", ascending=False),
+            x="risk_score", y="theme_label", palette="Reds_d", ax=ax
+        )
+        ax.set_title("Risk = Frequency × |Impact| × Stability")
+        st.pyplot(fig); plt.close(fig)
+
+    with col2:
+        st.subheader("Severity Heatmap")
+        fig, ax = plt.subplots(figsize=(5, 4))
+        sns.heatmap(
+            theme_df.set_index("theme_label")[["severity_score"]],
+            annot=True, fmt=".4f", cmap="Reds", ax=ax
+        )
+        st.pyplot(fig); plt.close(fig)
+
+    st.divider()
+    st.subheader("Issue Classification Breakdown")
+    class_counts = theme_df["issue_class"].value_counts()
+    palette_map  = {"Systemic": "#d73027", "Recurring": "#fc8d59", "Isolated": "#1a9850"}
+    fig, ax = plt.subplots(figsize=(5, 3))
+    sns.barplot(
+        x=class_counts.index, y=class_counts.values,
+        palette=[palette_map.get(c, "gray") for c in class_counts.index], ax=ax
+    )
+    ax.set_ylabel("Number of Themes")
+    ax.set_title("Themes by Classification")
+    st.pyplot(fig); plt.close(fig)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 4 — Review Explorer
+# ════════════════════════════════════════════════════════════════════════════
+with tab4:
+    st.subheader("Review Explorer")
+    st.caption("Filtered by sidebar. Sort by residual to find where the model under/over-predicts.")
+
+    st.dataframe(
+        filtered[[
+            "Feedback", "Ratings", "predicted_rating", "residual",
+            "theme_label", "dominant_contributor_theme",
+            "most_positive_theme", "most_negative_theme"
+        ]].head(300),
+        use_container_width=True
+    )
+
+    st.divider()
+    st.subheader("Drill Down: Single Review")
+
+    if len(filtered) > 0:
+        idx = st.number_input(
+            "Pick a row index (0 to N-1 of filtered table)",
+            min_value=0, max_value=len(filtered) - 1, value=0
+        )
+        row = filtered.iloc[int(idx)]
+
+        st.markdown(f"**Review:** {row['Feedback']}")
+        st.markdown(f"**Rating:** {row['Ratings']} | **Predicted:** {row['predicted_rating']:.2f} | **Residual:** {row['residual']:.2f}")
+        st.markdown(f"**Dominant Theme:** {row['theme_label']}")
+        st.markdown(f"**Dominant Contributor:** {row['dominant_contributor_theme']}")
+
+        prob_cols    = [c for c in filtered.columns if c.startswith("topic_prob_")]
+        contrib_cols = [c for c in filtered.columns if c.startswith("contrib_")]
+        prob_series    = row[prob_cols].rename(lambda x: x.replace("topic_prob_", "Topic "))
+        contrib_series = row[contrib_cols].rename(lambda x: x.replace("contrib_", "Topic "))
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("Topic Probabilities")
+            st.bar_chart(prob_series)
+        with c2:
+            st.write("Topic Contributions (coef × prob)")
+            st.bar_chart(contrib_series)
+    else:
+        st.info("No reviews match the current filters.")
