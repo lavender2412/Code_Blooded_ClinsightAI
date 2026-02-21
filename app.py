@@ -284,7 +284,7 @@ with tab2:
         title="Theme Impact on Star Rating",
         xaxis_title="Regression Coefficient",
         height=420,
-        margin=dict(l=280, r=80, t=48, b=48),  # ← wider left margin
+        margin=dict(l=320, r=80, t=48, b=48),  # ← wider left margin
         legend=dict(orientation="h", y=1.08, x=0),
         yaxis=dict(
             tickmode="array",
