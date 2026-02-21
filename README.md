@@ -16,7 +16,10 @@ The system processes hospital datasets to generate comprehensive reports at mult
 - **JSON & CSV Output**: Generate outputs in multiple formats for further analysis and reporting
 
 ## 📁 Repository Structure
-Code_Blooded_ClinsightAI/ ├── app.py # Streamlit web application interface ├── run_pipeline.py # Main data processing pipeline execution ├── requirements.txt # Python dependencies ├── hospital.csv # Input: Raw hospital data ├── clinsight_output.json # Output: Structured insights in JSON format ├── review_level_outputs.csv # Output: Review-level analysis results ├── theme_level_outputs.csv # Output: Theme-level analysis results ├── task3_recurring_systemic.csv # Output: Recurring systemic issues analysis ├── task4_action_roadmap.csv # Output: Strategic action roadmap ├── pipeline/ # Pipeline modules directory └── README.md # Project documentation
+Code_Blooded_ClinsightAI/ 
+├── app.py 
+# Streamlit web application interface 
+├── run_pipeline.py # Main data processing pipeline execution ├── requirements.txt # Python dependencies ├── hospital.csv # Input: Raw hospital data ├── clinsight_output.json # Output: Structured insights in JSON format ├── review_level_outputs.csv # Output: Review-level analysis results ├── theme_level_outputs.csv # Output: Theme-level analysis results ├── task3_recurring_systemic.csv # Output: Recurring systemic issues analysis ├── task4_action_roadmap.csv # Output: Strategic action roadmap ├── pipeline/ # Pipeline modules directory └── README.md # Project documentation
 
 
 ## 📊 Data Files
