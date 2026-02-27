@@ -6,6 +6,11 @@
 
 The system processes hospital datasets to generate comprehensive reports at multiple analytical levels (review-level, theme-level) and creates strategic recommendations for operational improvements.
 
+## 🚀 Live Demo
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://hackclinsightai.streamlit.app)
+
+
 ## 🎯 Key Features
 
 - **Multi-Level Analysis**: Analyze hospital data at review, theme, and systemic levels
